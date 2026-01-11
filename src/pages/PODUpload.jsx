@@ -2,148 +2,195 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import {
-    ArrowLeft,
-    Camera,
-    Image as ImageIcon,
-    Upload,
-    X,
-    CheckCircle2,
-    AlertCircle
+  ArrowLeft,
+  Camera,
+  Image as ImageIcon,
+  Upload,
+  X,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 
 const PODUpload = () => {
-    const { id } = useParams();
-    const navigate = useNavigate();
-    const [images, setImages] = useState([]);
-    const [uploading, setUploading] = useState(false);
-    const [success, setSuccess] = useState(false);
-    const [error, setError] = useState('');
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [images, setImages] = useState([]);
+  const [existingUrls, setExistingUrls] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
-    const handleFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        const newImages = files.map(file => ({
-            file,
-            preview: URL.createObjectURL(file)
-        }));
-        setImages(prev => [...prev, ...newImages]);
-    };
+  const fetchExistingPod = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('trips')
+        .select('pod_path')
+        .eq('id', id)
+        .single();
 
-    const uploadToCloudinary = async (file) => {
-        const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-        const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
-
-        if (!cloudName || !uploadPreset) {
-            throw new Error('Cloudinary credentials missing');
+      if (error) throw error;
+      if (data?.pod_path) {
+        // Normalize: handle comma-separated string or JSON array
+        let urls = [];
+        if (typeof data.pod_path === 'string') {
+          urls = data.pod_path.split(',').filter(u => u.trim());
+        } else if (Array.isArray(data.pod_path)) {
+          urls = data.pod_path;
         }
+        setExistingUrls(urls);
+      }
+    } catch (err) {
+      console.error('Error fetching existing POD:', err);
+    }
+  };
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', uploadPreset);
+  React.useEffect(() => {
+    if (id) fetchExistingPod();
+  }, [id]);
 
-        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-            method: 'POST',
-            body: formData,
-        });
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newImages = files.map(file => ({
+      file,
+      preview: URL.createObjectURL(file)
+    }));
+    setImages(prev => [...prev, ...newImages]);
+  };
 
-        if (!response.ok) throw new Error('Failed to upload image to Cloudinary');
-        const data = await response.json();
-        return data.secure_url;
-    };
+  const uploadToCloudinary = async (file) => {
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
-    const handleUpload = async () => {
-        if (images.length === 0) return;
-        setUploading(true);
-        setError('');
+    if (!cloudName || !uploadPreset) {
+      throw new Error('Cloudinary credentials missing');
+    }
 
-        try {
-            // 1. Upload all to Cloudinary
-            const uploadPromises = images.map(img => uploadToCloudinary(img.file));
-            const urls = await Promise.all(uploadPromises);
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', uploadPreset);
 
-            // 2. Update Supabase
-            const podPath = urls.join(',');
-            const { error: dbError } = await supabase
-                .from('trips')
-                .update({
-                    pod_path: podPath,
-                    pod_status: 'Received'
-                })
-                .eq('id', id);
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: 'POST',
+      body: formData,
+    });
 
-            if (dbError) throw dbError;
+    if (!response.ok) throw new Error('Failed to upload image to Cloudinary');
+    const data = await response.json();
+    return data.secure_url;
+  };
 
-            setSuccess(true);
-            setTimeout(() => navigate(`/trips/${id}`), 2000);
-        } catch (err) {
-            console.error('Upload error:', err);
-            setError(err.message || 'Failed to upload POD');
-        } finally {
-            setUploading(false);
+  const handleUpload = async () => {
+    if (images.length === 0) return;
+    setUploading(true);
+    setError('');
+
+    try {
+      // 1. Upload all to Cloudinary
+      const uploadPromises = images.map(img => uploadToCloudinary(img.file));
+      const urls = await Promise.all(uploadPromises);
+
+      // 2. Refresh existing URLs right before update to prevent race conditions
+      const { data: latestData } = await supabase
+        .from('trips')
+        .select('pod_path')
+        .eq('id', id)
+        .single();
+
+      let currentUrls = [];
+      if (latestData?.pod_path) {
+        if (typeof latestData.pod_path === 'string') {
+          currentUrls = latestData.pod_path.split(',').filter(u => u.trim());
+        } else if (Array.isArray(latestData.pod_path)) {
+          currentUrls = latestData.pod_path;
         }
-    };
+      }
 
-    return (
-        <div className="upload-page">
-            <div className="upload-header">
-                <button className="back-btn" onClick={() => navigate(-1)}>
-                    <ArrowLeft size={24} />
-                </button>
-                <h2>Upload POD</h2>
+      // 3. Combine and Update Supabase
+      const combinedUrls = [...currentUrls, ...urls];
+      const podPath = combinedUrls.join(',');
+
+      const { error: dbError } = await supabase
+        .from('trips')
+        .update({
+          pod_path: podPath,
+          pod_status: 'Received'
+        })
+        .eq('id', id);
+
+      if (dbError) throw dbError;
+
+      setSuccess(true);
+      setTimeout(() => navigate(`/trips/${id}`), 2000);
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError(err.message || 'Failed to upload POD');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="upload-page">
+      <div className="upload-header">
+        <button className="back-btn" onClick={() => navigate(-1)}>
+          <ArrowLeft size={24} />
+        </button>
+        <h2>Upload POD</h2>
+      </div>
+
+      <div className="glass upload-area">
+        <div className="upload-options">
+          <label className="option-btn cam">
+            <Camera size={24} />
+            <span>Camera</span>
+            <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} hidden />
+          </label>
+          <label className="option-btn gal">
+            <ImageIcon size={24} />
+            <span>Gallery</span>
+            <input type="file" accept="image/*" multiple onChange={handleFileChange} hidden />
+          </label>
+        </div>
+
+        <div className="preview-grid">
+          {images.map((img, idx) => (
+            <div key={idx} className="preview-item">
+              <img src={img.preview} alt="POD Preview" />
+              <button className="remove-btn" onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}>
+                <X size={14} />
+              </button>
             </div>
+          ))}
+          {images.length === 0 && (
+            <p className="empty-text">No images selected</p>
+          )}
+        </div>
+      </div>
 
-            <div className="glass upload-area">
-                <div className="upload-options">
-                    <label className="option-btn cam">
-                        <Camera size={24} />
-                        <span>Camera</span>
-                        <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} hidden />
-                    </label>
-                    <label className="option-btn gal">
-                        <ImageIcon size={24} />
-                        <span>Gallery</span>
-                        <input type="file" accept="image/*" multiple onChange={handleFileChange} hidden />
-                    </label>
-                </div>
+      {error && (
+        <div className="error-box">
+          <AlertCircle size={18} />
+          <span>{error}</span>
+        </div>
+      )}
 
-                <div className="preview-grid">
-                    {images.map((img, idx) => (
-                        <div key={idx} className="preview-item">
-                            <img src={img.preview} alt="POD Preview" />
-                            <button className="remove-btn" onClick={() => setImages(prev => prev.filter((_, i) => i !== idx))}>
-                                <X size={14} />
-                            </button>
-                        </div>
-                    ))}
-                    {images.length === 0 && (
-                        <p className="empty-text">No images selected</p>
-                    )}
-                </div>
-            </div>
+      {success && (
+        <div className="success-box">
+          <CheckCircle2 size={18} />
+          <span>POD Uploaded Successfully!</span>
+        </div>
+      )}
 
-            {error && (
-                <div className="error-box">
-                    <AlertCircle size={18} />
-                    <span>{error}</span>
-                </div>
-            )}
+      <button
+        className="btn btn-primary upload-submit"
+        onClick={handleUpload}
+        disabled={uploading || images.length === 0 || success}
+      >
+        <Upload size={20} />
+        <span>{uploading ? 'Uploading...' : 'Submit POD'}</span>
+      </button>
 
-            {success && (
-                <div className="success-box">
-                    <CheckCircle2 size={18} />
-                    <span>POD Uploaded Successfully!</span>
-                </div>
-            )}
-
-            <button
-                className="btn btn-primary upload-submit"
-                onClick={handleUpload}
-                disabled={uploading || images.length === 0 || success}
-            >
-                <Upload size={20} />
-                <span>{uploading ? 'Uploading...' : 'Submit POD'}</span>
-            </button>
-
-            <style jsx>{`
+      <style jsx>{`
         .upload-page {
           padding-top: 0.5rem;
         }
@@ -256,8 +303,8 @@ const PODUpload = () => {
           gap: 10px;
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default PODUpload;
