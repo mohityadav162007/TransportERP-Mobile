@@ -9,6 +9,7 @@ import {
   Clock,
   Wallet
 } from 'lucide-react';
+import { startOfWeek, endOfWeek, isWithinInterval, getDay } from 'date-fns';
 
 const KPICard = ({ title, value, icon: Icon, color }) => (
   <div className="glass carousel-item">
@@ -96,6 +97,7 @@ const Dashboard = () => {
     balanceDue: 0,
     payable: 0,
     monthlyProfit: 0,
+    weeklyTrips: [0, 0, 0, 0, 0, 0, 0], // Mon-Sun
     recentTrips: []
   });
   const [loading, setLoading] = useState(true);
@@ -137,10 +139,24 @@ const Dashboard = () => {
         pendingPayments: 0,
         balanceDue: 0,
         payable: 0,
-        monthlyProfit: 0
+        monthlyProfit: 0,
+        weeklyTrips: [0, 0, 0, 0, 0, 0, 0]
       });
 
-      setStats({ ...totals, recentTrips: trips.slice(0, 5) });
+      // Calculate Weekly Counts
+      const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+      const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+
+      const weeklyCounts = [0, 0, 0, 0, 0, 0, 0];
+      trips.forEach(trip => {
+        const tripDate = new Date(trip.loading_date);
+        if (isWithinInterval(tripDate, { start: weekStart, end: weekEnd })) {
+          const dayIndex = (getDay(tripDate) + 6) % 7; // Map 0 (Sun) to index 6, 1 (Mon) to index 0
+          weeklyCounts[dayIndex]++;
+        }
+      });
+
+      setStats({ ...totals, weeklyTrips: weeklyCounts, recentTrips: trips.slice(0, 5) });
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
     } finally {
@@ -188,12 +204,17 @@ const Dashboard = () => {
       </div>
 
       <div className="dashboard-sections">
-        <SectionCard title="Profit Graph">
+        <SectionCard title="Weekly Trips">
           <div className="chart-placeholder">
             <div className="bar-container">
-              {[40, 70, 45, 90, 65, 80, 55].map((h, i) => (
-                <div key={i} className="chart-bar" style={{ height: `${h}%` }}></div>
-              ))}
+              {stats.weeklyTrips.map((count, i) => {
+                const max = Math.max(...stats.weeklyTrips, 5);
+                return (
+                  <div key={i} className="chart-bar" style={{ height: `${(count / max) * 100}%` }}>
+                    {count > 0 && <span className="bar-val">{count}</span>}
+                  </div>
+                );
+              })}
             </div>
             <div className="chart-labels">
               {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(l => <span key={l}>{l}</span>)}
@@ -312,6 +333,16 @@ const Dashboard = () => {
           border-radius: 4px 4px 0 0;
           opacity: 0.7;
           min-width: 12px;
+          position: relative;
+          display: flex;
+          justify-content: center;
+        }
+        .bar-val {
+          position: absolute;
+          top: -18px;
+          font-size: 0.65rem;
+          font-weight: 700;
+          color: var(--accent-color);
         }
         .chart-labels {
           display: flex;
