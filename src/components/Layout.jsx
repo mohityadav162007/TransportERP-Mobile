@@ -7,7 +7,7 @@ const Layout = () => {
     <div className="layout-container">
       {/* Header */}
       <header className="glass header">
-        <h1>Transport ERP</h1>
+        <h1>Shri Sanwariya Road Lines</h1>
       </header>
 
       {/* Main Content */}

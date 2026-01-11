@@ -30,9 +30,9 @@ const Login = () => {
       <div className="glass login-card">
         <div className="login-header">
           <div className="logo-box">
-            <LogIn size={32} />
+            <img src="/logo.png" alt="Shri Sanwariya Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
-          <h2>Transport ERP</h2>
+          <h2>Shri Sanwariya Road Lines</h2>
           <p>Login to your account</p>
         </div>
 
