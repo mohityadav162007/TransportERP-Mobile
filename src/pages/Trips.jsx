@@ -1,84 +1,84 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-    Search,
-    Filter,
-    Plus,
-    MapPin,
-    Calendar,
-    Truck,
-    User,
-    IndianRupee,
-    ChevronRight,
-    X
+  Search,
+  Filter,
+  Plus,
+  MapPin,
+  Calendar,
+  Truck,
+  User,
+  IndianRupee,
+  ChevronRight,
+  X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 
 const StatusBadge = ({ status, type }) => {
-    const getColors = () => {
-        if (type === 'payment') {
-            return status === 'Paid'
-                ? 'bg-green-soft text-green'
-                : 'bg-yellow-soft text-yellow';
-        }
-        return status === 'Received'
-            ? 'bg-green-soft text-green'
-            : 'bg-red-soft text-red';
-    };
+  const getColors = () => {
+    if (type === 'payment') {
+      return status?.toLowerCase() === 'paid'
+        ? 'bg-green-soft text-green'
+        : 'bg-yellow-soft text-yellow';
+    }
+    return status?.toLowerCase() === 'received'
+      ? 'bg-green-soft text-green'
+      : 'bg-red-soft text-red';
+  };
 
-    return (
-        <span className={`status-badge ${getColors()}`}>
-            {status}
-        </span>
-    );
+  return (
+    <span className={`status-badge ${getColors()}`}>
+      {status}
+    </span>
+  );
 };
 
 const TripCard = ({ trip, onClick }) => (
-    <div className="glass glass-card trip-card" onClick={onClick}>
-        <div className="card-top">
-            <span className="trip-code">{trip.trip_code}</span>
-            <div className="status-badges">
-                <StatusBadge type="payment" status={trip.payment_status} />
-                <StatusBadge type="pod" status={trip.pod_status} />
-            </div>
-        </div>
+  <div className="glass glass-card trip-card" onClick={onClick}>
+    <div className="card-top">
+      <span className="trip-code">{trip.trip_code}</span>
+      <div className="status-badges">
+        <StatusBadge type="payment" status={trip.payment_status} />
+        <StatusBadge type="pod" status={trip.pod_status} />
+      </div>
+    </div>
 
-        <div className="route-info">
-            <div className="route-stop">
-                <div className="date-loc">
-                    <span className="date">{format(new Date(trip.loading_date), 'dd MMM')}</span>
-                    <span className="location">{trip.from_location}</span>
-                </div>
-            </div>
-            <div className="route-arrow">
-                <div className="line"></div>
-                <ChevronRight size={16} />
-            </div>
-            <div className="route-stop text-right">
-                <div className="date-loc">
-                    <span className="date">{trip.unloading_date ? format(new Date(trip.unloading_date), 'dd MMM') : '-'}</span>
-                    <span className="location">{trip.to_location}</span>
-                </div>
-            </div>
+    <div className="route-info">
+      <div className="route-stop">
+        <div className="date-loc">
+          <span className="date">{format(new Date(trip.loading_date), 'dd MMM')}</span>
+          <span className="location">{trip.from_location}</span>
         </div>
-
-        <div className="card-details">
-            <div className="detail-item">
-                <Truck size={14} className="text-secondary" />
-                <span>{trip.vehicle_number}</span>
-            </div>
-            <div className="detail-item">
-                <User size={14} className="text-secondary" />
-                <span>{trip.party_name}</span>
-            </div>
-            <div className="detail-item balance">
-                <IndianRupee size={14} />
-                <span>{Number(trip.party_balance || 0).toLocaleString()}</span>
-            </div>
+      </div>
+      <div className="route-arrow">
+        <div className="line"></div>
+        <ChevronRight size={16} />
+      </div>
+      <div className="route-stop text-right">
+        <div className="date-loc">
+          <span className="date">{trip.unloading_date ? format(new Date(trip.unloading_date), 'dd MMM') : '-'}</span>
+          <span className="location">{trip.to_location}</span>
         </div>
+      </div>
+    </div>
 
-        <style jsx>{`
+    <div className="card-details">
+      <div className="detail-item">
+        <Truck size={14} className="text-secondary" />
+        <span>{trip.vehicle_number}</span>
+      </div>
+      <div className="detail-item">
+        <User size={14} className="text-secondary" />
+        <span>{trip.party_name}</span>
+      </div>
+      <div className="detail-item balance">
+        <IndianRupee size={14} />
+        <span>{Number(trip.party_balance || 0).toLocaleString()}</span>
+      </div>
+    </div>
+
+    <style jsx>{`
       .trip-card {
         cursor: pointer;
         padding: 1rem;
@@ -163,157 +163,157 @@ const TripCard = ({ trip, onClick }) => (
         color: #3fb950;
       }
     `}</style>
-    </div>
+  </div>
 );
 
 const Trips = () => {
-    const navigate = useNavigate();
-    const [trips, setTrips] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
-    const [showFilters, setShowFilters] = useState(false);
-    const [filters, setFilters] = useState({
-        vehicle: '',
-        paymentStatus: '',
-        podStatus: ''
+  const navigate = useNavigate();
+  const [trips, setTrips] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    vehicle: '',
+    paymentStatus: '',
+    podStatus: ''
+  });
+
+  const fetchTrips = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setTrips(data || []);
+    } catch (err) {
+      console.error('Error fetching trips:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrips();
+  }, []);
+
+  const filteredTrips = useMemo(() => {
+    return trips.filter(trip => {
+      const searchMatch = !search ||
+        trip.vehicle_number?.toLowerCase().includes(search.toLowerCase()) ||
+        trip.party_name?.toLowerCase().includes(search.toLowerCase()) ||
+        trip.motor_owner_name?.toLowerCase().includes(search.toLowerCase()) ||
+        trip.from_location?.toLowerCase().includes(search.toLowerCase()) ||
+        trip.to_location?.toLowerCase().includes(search.toLowerCase()) ||
+        trip.trip_code?.toLowerCase().includes(search.toLowerCase());
+
+      const vehicleMatch = !filters.vehicle || trip.vehicle_number?.toLowerCase().includes(filters.vehicle.toLowerCase());
+      const paymentMatch = !filters.paymentStatus || trip.payment_status === filters.paymentStatus;
+      const podMatch = !filters.podStatus || trip.pod_status === filters.podStatus;
+
+      return searchMatch && vehicleMatch && paymentMatch && podMatch;
     });
+  }, [trips, search, filters]);
 
-    const fetchTrips = async () => {
-        try {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('trips')
-                .select('*')
-                .eq('is_deleted', false)
-                .order('created_at', { ascending: false });
+  return (
+    <div className="trips-page">
+      <div className="page-header">
+        <h2>Trips</h2>
+        <button className="btn btn-primary add-btn" onClick={() => navigate('/trips/add')}>
+          <Plus size={20} />
+          <span>Add</span>
+        </button>
+      </div>
 
-            if (error) throw error;
-            setTrips(data || []);
-        } catch (err) {
-            console.error('Error fetching trips:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+      <div className="search-bar glass">
+        <Search size={18} className="text-secondary" />
+        <input
+          type="text"
+          placeholder="Search trips..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <button
+          className={`filter-btn ${showFilters ? 'active' : ''}`}
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter size={18} />
+        </button>
+      </div>
 
-    useEffect(() => {
-        fetchTrips();
-    }, []);
-
-    const filteredTrips = useMemo(() => {
-        return trips.filter(trip => {
-            const searchMatch = !search ||
-                trip.vehicle_number?.toLowerCase().includes(search.toLowerCase()) ||
-                trip.party_name?.toLowerCase().includes(search.toLowerCase()) ||
-                trip.motor_owner_name?.toLowerCase().includes(search.toLowerCase()) ||
-                trip.from_location?.toLowerCase().includes(search.toLowerCase()) ||
-                trip.to_location?.toLowerCase().includes(search.toLowerCase()) ||
-                trip.trip_code?.toLowerCase().includes(search.toLowerCase());
-
-            const vehicleMatch = !filters.vehicle || trip.vehicle_number?.toLowerCase().includes(filters.vehicle.toLowerCase());
-            const paymentMatch = !filters.paymentStatus || trip.payment_status === filters.paymentStatus;
-            const podMatch = !filters.podStatus || trip.pod_status === filters.podStatus;
-
-            return searchMatch && vehicleMatch && paymentMatch && podMatch;
-        });
-    }, [trips, search, filters]);
-
-    return (
-        <div className="trips-page">
-            <div className="page-header">
-                <h2>Trips</h2>
-                <button className="btn btn-primary add-btn" onClick={() => navigate('/trips/add')}>
-                    <Plus size={20} />
-                    <span>Add</span>
-                </button>
+      {showFilters && (
+        <div className="filters-panel glass">
+          <div className="filter-header">
+            <h3>Filters</h3>
+            <button onClick={() => setShowFilters(false)}><X size={18} /></button>
+          </div>
+          <div className="filter-grid">
+            <div className="filter-item">
+              <label>Vehicle Number</label>
+              <input
+                type="text"
+                placeholder="Ex: HR 55"
+                value={filters.vehicle}
+                onChange={(e) => setFilters({ ...filters, vehicle: e.target.value })}
+              />
             </div>
-
-            <div className="search-bar glass">
-                <Search size={18} className="text-secondary" />
-                <input
-                    type="text"
-                    placeholder="Search trips..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-                <button
-                    className={`filter-btn ${showFilters ? 'active' : ''}`}
-                    onClick={() => setShowFilters(!showFilters)}
-                >
-                    <Filter size={18} />
-                </button>
+            <div className="filter-item">
+              <label>Payment Status</label>
+              <div className="chip-group">
+                {['Pending', 'Paid'].map(s => (
+                  <button
+                    key={s}
+                    className={`chip ${filters.paymentStatus === s ? 'active' : ''}`}
+                    onClick={() => setFilters({ ...filters, paymentStatus: filters.paymentStatus === s ? '' : s })}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
-
-            {showFilters && (
-                <div className="filters-panel glass">
-                    <div className="filter-header">
-                        <h3>Filters</h3>
-                        <button onClick={() => setShowFilters(false)}><X size={18} /></button>
-                    </div>
-                    <div className="filter-grid">
-                        <div className="filter-item">
-                            <label>Vehicle Number</label>
-                            <input
-                                type="text"
-                                placeholder="Ex: HR 55"
-                                value={filters.vehicle}
-                                onChange={(e) => setFilters({ ...filters, vehicle: e.target.value })}
-                            />
-                        </div>
-                        <div className="filter-item">
-                            <label>Payment Status</label>
-                            <div className="chip-group">
-                                {['Pending', 'Paid'].map(s => (
-                                    <button
-                                        key={s}
-                                        className={`chip ${filters.paymentStatus === s ? 'active' : ''}`}
-                                        onClick={() => setFilters({ ...filters, paymentStatus: filters.paymentStatus === s ? '' : s })}
-                                    >
-                                        {s}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="filter-item">
-                            <label>POD Status</label>
-                            <div className="chip-group">
-                                {['Pending', 'Received'].map(s => (
-                                    <button
-                                        key={s}
-                                        className={`chip ${filters.podStatus === s ? 'active' : ''}`}
-                                        onClick={() => setFilters({ ...filters, podStatus: filters.podStatus === s ? '' : s })}
-                                    >
-                                        {s}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                    <button className="btn btn-secondary w-full" onClick={() => setFilters({ vehicle: '', paymentStatus: '', podStatus: '' })}>
-                        Reset Filters
-                    </button>
-                </div>
-            )}
-
-            <div className="trips-list">
-                {loading ? (
-                    <p className="text-center py-4">Loading trips...</p>
-                ) : filteredTrips.length > 0 ? (
-                    filteredTrips.map(trip => (
-                        <TripCard
-                            key={trip.id}
-                            trip={trip}
-                            onClick={() => navigate(`/trips/${trip.id}`)}
-                        />
-                    ))
-                ) : (
-                    <div className="empty-state">
-                        <p>No trips found</p>
-                    </div>
-                )}
+            <div className="filter-item">
+              <label>POD Status</label>
+              <div className="chip-group">
+                {['Pending', 'Received'].map(s => (
+                  <button
+                    key={s}
+                    className={`chip ${filters.podStatus === s ? 'active' : ''}`}
+                    onClick={() => setFilters({ ...filters, podStatus: filters.podStatus === s ? '' : s })}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
+          </div>
+          <button className="btn btn-secondary w-full" onClick={() => setFilters({ vehicle: '', paymentStatus: '', podStatus: '' })}>
+            Reset Filters
+          </button>
+        </div>
+      )}
 
-            <style jsx>{`
+      <div className="trips-list">
+        {loading ? (
+          <p className="text-center py-4">Loading trips...</p>
+        ) : filteredTrips.length > 0 ? (
+          filteredTrips.map(trip => (
+            <TripCard
+              key={trip.id}
+              trip={trip}
+              onClick={() => navigate(`/trips/${trip.id}`)}
+            />
+          ))
+        ) : (
+          <div className="empty-state">
+            <p>No trips found</p>
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
         .trips-page { padding-top: 0.5rem; }
         .page-header {
           display: flex;
@@ -403,8 +403,8 @@ const Trips = () => {
         }
         .w-full { width: 100%; }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default Trips;

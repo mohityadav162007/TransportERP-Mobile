@@ -122,8 +122,8 @@ const Dashboard = () => {
         acc.totalTrips += 1;
         acc.totalFreight += Number(trip.party_freight || 0);
         acc.totalBhada += Number(trip.gaadi_freight || 0);
-        if (trip.pod_status !== 'Received') acc.pendingPOD += 1;
-        if (trip.payment_status !== 'Paid') acc.pendingPayments += 1;
+        if (trip.pod_status?.toLowerCase() !== 'received') acc.pendingPOD += 1;
+        if (trip.payment_status?.toLowerCase() !== 'paid') acc.pendingPayments += 1;
         acc.balanceDue += Number(trip.party_balance || 0);
         acc.payable += Number(trip.gaadi_balance || 0);
         if (isCurrentMonth) acc.monthlyProfit += Number(trip.profit || 0);
@@ -251,7 +251,7 @@ const Dashboard = () => {
                   <span className="t-route">{trip.from_location} → {trip.to_location}</span>
                 </div>
                 <div className="t-status">
-                  <span className={`dot ${trip.pod_status === 'Received' ? 'bg-green' : 'bg-red'}`}></span>
+                  <span className={`dot ${trip.pod_status?.toLowerCase() === 'received' ? 'bg-green' : 'bg-red'}`}></span>
                 </div>
               </div>
             ))}

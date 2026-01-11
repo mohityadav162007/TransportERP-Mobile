@@ -109,14 +109,6 @@ const TripForm = () => {
         pod_status: 'Pending'
     });
 
-    const [newPayment, setNewPayment] = useState({
-        amount: '',
-        payment_type: 'Cash',
-        transaction_type: 'Debit',
-        transaction_date: format(new Date(), 'yyyy-MM-dd')
-    });
-
-    const [showPaymentForm, setShowPaymentForm] = useState(false);
 
     useEffect(() => {
         if (isEdit) {
@@ -195,23 +187,6 @@ const TripForm = () => {
                 tripId = data.id;
             }
 
-            // 3. Add Payment if applicable
-            if (showPaymentForm && newPayment.amount) {
-                const { error: pError } = await supabase
-                    .from('payment_history')
-                    .insert([{
-                        trip_id: tripId,
-                        trip_code: formData.trip_code,
-                        vehicle_number: formData.vehicle_number,
-                        loading_date: formData.loading_date,
-                        amount: newPayment.amount,
-                        payment_type: newPayment.payment_type,
-                        transaction_type: newPayment.transaction_type,
-                        transaction_date: newPayment.transaction_date,
-                        is_deleted: false
-                    }]);
-                if (pError) throw pError;
-            }
 
             navigate('/trips');
         } catch (err) {
@@ -415,55 +390,6 @@ const TripForm = () => {
                     </div>
                 </FormSection>
 
-                <FormSection title="Add Payment History" icon={IndianRupee}>
-                    <div className="payment-toggle">
-                        <label>Record a New Payment?</label>
-                        <button type="button" className={`toggle-btn ${showPaymentForm ? 'active' : ''}`} onClick={() => setShowPaymentForm(!showPaymentForm)}>
-                            {showPaymentForm ? 'Cancel Payment' : 'Add Payment'}
-                        </button>
-                    </div>
-
-                    {showPaymentForm && (
-                        <div className="payment-fields">
-                            <InputField
-                                label="Amount"
-                                name="amount"
-                                value={newPayment.amount}
-                                onChange={(e) => setNewPayment({ ...newPayment, amount: e.target.value })}
-                                placeholder="Ex: 5000"
-                                required
-                            />
-                            <div className="grid-2">
-                                <div className="input-group">
-                                    <label>Payment Mode</label>
-                                    <input
-                                        value={newPayment.payment_type}
-                                        onChange={(e) => setNewPayment({ ...newPayment, payment_type: e.target.value })}
-                                        placeholder="Ex: Cash/UPI"
-                                        required
-                                    />
-                                </div>
-                                <div className="input-group">
-                                    <label>Transaction Type</label>
-                                    <input
-                                        value={newPayment.transaction_type}
-                                        onChange={(e) => setNewPayment({ ...newPayment, transaction_type: e.target.value })}
-                                        placeholder="Ex: Debit/Credit"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <InputField
-                                label="Transaction Date"
-                                name="transaction_date"
-                                type="date"
-                                value={newPayment.transaction_date}
-                                onChange={(e) => setNewPayment({ ...newPayment, transaction_date: e.target.value })}
-                                required
-                            />
-                        </div>
-                    )}
-                </FormSection>
 
                 <button type="submit" className="btn btn-primary submit-btn" disabled={loading}>
                     <Save size={20} />
@@ -525,35 +451,6 @@ const TripForm = () => {
           font-size: 1.1rem;
           box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
           z-index: 50;
-        }
-        .payment-toggle {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .payment-toggle label {
-          font-weight: 600;
-          font-size: 0.9rem;
-        }
-        .toggle-btn {
-          padding: 6px 12px;
-          border-radius: 8px;
-          border: 1px solid var(--glass-border);
-          background: var(--glass-bg);
-          color: white;
-          cursor: pointer;
-        }
-        .toggle-btn.active {
-          background: var(--danger-color);
-          border-color: var(--danger-color);
-        }
-        .payment-fields {
-          display: flex;
-          flex-direction: column;
-          gap: 1.25rem;
-          margin-top: 1rem;
-          padding-top: 1rem;
-          border-top: 1px dashed var(--glass-border);
         }
       `}</style>
         </div>
