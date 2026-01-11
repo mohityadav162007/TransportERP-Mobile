@@ -14,7 +14,7 @@ const KPICard = ({ title, value, icon: Icon, color }) => (
   <div className="glass carousel-item">
     <div className="kpi-card">
       <div className={`icon-wrapper ${color}`}>
-        <Icon size={20} />
+        <Icon size={22} strokeWidth={2.5} />
       </div>
       <div className="kpi-info">
         <span className="kpi-title">{title}</span>
@@ -25,12 +25,12 @@ const KPICard = ({ title, value, icon: Icon, color }) => (
       .kpi-card {
         display: flex;
         align-items: center;
-        gap: 1rem;
-        padding: 1rem;
+        gap: 1.25rem;
+        padding: 1.25rem;
       }
       .icon-wrapper {
-        width: 44px;
-        height: 44px;
+        width: 48px;
+        height: 48px;
         border-radius: 12px;
         display: flex;
         align-items: center;
@@ -46,16 +46,41 @@ const KPICard = ({ title, value, icon: Icon, color }) => (
       .kpi-info {
         display: flex;
         flex-direction: column;
+        gap: 2px;
       }
       .kpi-title {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
         color: var(--text-secondary);
         font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .kpi-value {
-        font-size: 1.25rem;
-        font-weight: 700;
+        font-size: 1.4rem;
+        font-weight: 800;
         margin: 0;
+        color: #ffffff;
+      }
+    `}</style>
+  </div>
+);
+
+const SectionCard = ({ title, children }) => (
+  <div className="section-card-wrapper">
+    <h3 className="section-title">{title}</h3>
+    <div className="glass glass-card">
+      {children}
+    </div>
+    <style jsx>{`
+      .section-card-wrapper {
+        margin-bottom: 1.5rem;
+      }
+      .section-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: var(--text-secondary);
+        padding-left: 4px;
       }
     `}</style>
   </div>
@@ -70,7 +95,8 @@ const Dashboard = () => {
     pendingPayments: 0,
     balanceDue: 0,
     payable: 0,
-    monthlyProfit: 0
+    monthlyProfit: 0,
+    recentTrips: []
   });
   const [loading, setLoading] = useState(true);
 
@@ -80,7 +106,8 @@ const Dashboard = () => {
       const { data: trips, error } = await supabase
         .from('trips')
         .select('*')
-        .eq('is_deleted', false);
+        .eq('is_deleted', false)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
 
@@ -113,7 +140,7 @@ const Dashboard = () => {
         monthlyProfit: 0
       });
 
-      setStats(totals);
+      setStats({ ...totals, recentTrips: trips.slice(0, 5) });
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
     } finally {
@@ -124,7 +151,6 @@ const Dashboard = () => {
   useEffect(() => {
     fetchStats();
 
-    // Auto-refresh on real-time changes
     const channel = supabase
       .channel('trips-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'trips' }, () => {
@@ -151,7 +177,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard-page">
       <div className="section-header">
-        <h2>Overview</h2>
+        <h2>Dashboard</h2>
         <span className="date-display">{new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</span>
       </div>
 
@@ -161,59 +187,229 @@ const Dashboard = () => {
         ))}
       </div>
 
-      <div className="quick-actions">
-        <h3>Quick Actions</h3>
-        <div className="actions-grid">
-          <button className="glass action-btn" onClick={() => window.location.href = '/trips'}>
-            <Truck size={24} />
-            <span>Add Trip</span>
-          </button>
-          <button className="glass action-btn" onClick={() => window.location.href = '/expenses'}>
-            <Wallet size={24} />
-            <span>Expenses</span>
-          </button>
+      <div className="dashboard-sections">
+        <SectionCard title="Profit Graph">
+          <div className="chart-placeholder">
+            <div className="bar-container">
+              {[40, 70, 45, 90, 65, 80, 55].map((h, i) => (
+                <div key={i} className="chart-bar" style={{ height: `${h}%` }}></div>
+              ))}
+            </div>
+            <div className="chart-labels">
+              {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map(l => <span key={l}>{l}</span>)}
+            </div>
+          </div>
+        </SectionCard>
+
+        <div className="grid-sections">
+          <SectionCard title="POD Status">
+            <div className="status-summary">
+              <div className="status-item">
+                <span className="status-label">Received</span>
+                <span className="status-count text-green">{stats.totalTrips - stats.pendingPOD}</span>
+              </div>
+              <div className="status-item">
+                <span className="status-label">Pending</span>
+                <span className="status-count text-red">{stats.pendingPOD}</span>
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Payment Status">
+            <div className="status-summary">
+              <div className="status-item">
+                <span className="status-label">Paid</span>
+                <span className="status-count text-green">{stats.totalTrips - stats.pendingPayments}</span>
+              </div>
+              <div className="status-item">
+                <span className="status-label">Pending</span>
+                <span className="status-count text-yellow">{stats.pendingPayments}</span>
+              </div>
+            </div>
+          </SectionCard>
         </div>
+
+        <SectionCard title="Weekly Trips">
+          <div className="trip-metrics">
+            <div className="metric">
+              <span className="m-val">{Math.round(stats.totalTrips / 4)}</span>
+              <span className="m-lbl">Avg / Week</span>
+            </div>
+            <div className="metric">
+              <span className="m-val">{stats.totalTrips}</span>
+              <span className="m-lbl">This Month</span>
+            </div>
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Recent Trips">
+          <div className="trips-mini-list">
+            {stats.recentTrips.map(trip => (
+              <div key={trip.id} className="trip-mini-item">
+                <div className="t-info">
+                  <span className="t-code">{trip.trip_code}</span>
+                  <span className="t-route">{trip.from_location} → {trip.to_location}</span>
+                </div>
+                <div className="t-status">
+                  <span className={`dot ${trip.pod_status === 'Received' ? 'bg-green' : 'bg-red'}`}></span>
+                </div>
+              </div>
+            ))}
+            <button className="view-all-btn" onClick={() => window.location.href = '/trips'}>View All Trips</button>
+          </div>
+        </SectionCard>
       </div>
 
       <style jsx>{`
         .dashboard-page {
           padding-top: 0.5rem;
+          padding-bottom: 2rem;
         }
         .section-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 1.5rem;
+          margin-bottom: 1.25rem;
         }
         .section-header h2 {
           font-size: 1.5rem;
-          font-weight: 700;
+          font-weight: 800;
+          color: #ffffff;
         }
         .date-display {
           color: var(--text-secondary);
-          font-size: 0.9rem;
+          font-size: 0.85rem;
+          font-weight: 500;
         }
-        .quick-actions {
-          margin-top: 2rem;
+        
+        .dashboard-sections {
+          margin-top: 1.5rem;
         }
-        .quick-actions h3 {
-          font-size: 1.1rem;
-          margin-bottom: 1rem;
-        }
-        .actions-grid {
+
+        .grid-sections {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1rem;
         }
-        .action-btn {
+
+        .chart-placeholder {
+          height: 120px;
+          display: flex;
+          flex-direction: column;
+          justify-content: flex-end;
+          padding: 0.5rem;
+        }
+        .bar-container {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-around;
+          height: 80%;
+          gap: 8px;
+        }
+        .chart-bar {
+          flex: 1;
+          background: var(--accent-color);
+          border-radius: 4px 4px 0 0;
+          opacity: 0.7;
+          min-width: 12px;
+        }
+        .chart-labels {
+          display: flex;
+          justify-content: space-around;
+          margin-top: 8px;
+          font-size: 0.7rem;
+          color: var(--text-secondary);
+        }
+
+        .status-summary {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+        .status-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+        }
+        .status-label {
+          font-size: 0.8rem;
+          color: var(--text-secondary);
+        }
+        .status-count {
+          font-weight: 700;
+          font-size: 1rem;
+        }
+        .text-green { color: #3fb950; }
+        .text-red { color: #f85149; }
+        .text-yellow { color: #d29922; }
+
+        .trip-metrics {
+          display: flex;
+          justify-content: space-around;
+          padding: 0.5rem 0;
+        }
+        .metric {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 0.5rem;
-          padding: 1.5rem;
-          border: none;
+        }
+        .m-val {
+          font-size: 1.5rem;
+          font-weight: 800;
           color: white;
+        }
+        .m-lbl {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+        }
+
+        .trips-mini-list {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .trip-mini-item {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          padding-bottom: 8px;
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .trip-mini-item:last-of-type {
+          border-bottom: none;
+        }
+        .t-info {
+          display: flex;
+          flex-direction: column;
+        }
+        .t-code {
+          font-size: 0.85rem;
+          font-weight: 700;
+          color: var(--accent-color);
+        }
+        .t-route {
+          font-size: 0.75rem;
+          color: var(--text-secondary);
+        }
+        .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 50%;
+          display: block;
+        }
+        .bg-green { background: #3fb950; }
+        .bg-red { background: #f85149; }
+
+        .view-all-btn {
+          margin-top: 8px;
+          background: transparent;
+          border: none;
+          color: var(--accent-color);
+          font-size: 0.85rem;
           font-weight: 600;
+          cursor: pointer;
+          width: 100%;
+          text-align: center;
         }
       `}</style>
     </div>

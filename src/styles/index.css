@@ -1,7 +1,8 @@
 :root {
   --bg-color: #0d1117;
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.22);
+  --glass-blur: blur(20px);
   --text-primary: #ffffff;
   --text-secondary: #8b949e;
   --accent-color: #58a6ff;
@@ -25,10 +26,16 @@ body {
 
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
   border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.glass:hover {
+  box-shadow: 0 0 20px 1px rgba(0, 0, 0, 0.15);
+  border-color: rgba(255, 255, 255, 0.45);
 }
 
 .glass-card {
@@ -36,7 +43,8 @@ body {
   margin-bottom: 1rem;
 }
 
-input, textarea {
+input,
+textarea {
   width: 100%;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--glass-border);
@@ -48,7 +56,8 @@ input, textarea {
   transition: border-color 0.2s;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
   border-color: var(--accent-color);
 }
 
@@ -77,8 +86,8 @@ input:focus, textarea:focus {
   display: flex;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
-  gap: 1rem;
-  padding-bottom: 1rem;
+  padding: 0px 0px 1rem 0px;
+  gap: 12px;
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
@@ -88,7 +97,15 @@ input:focus, textarea:focus {
 }
 
 .carousel-item {
-  scroll-snap-align: center;
-  flex: 0 0 calc(100% - 2rem);
-  min-width: calc(100% - 2rem);
+  scroll-snap-align: start;
+  flex: 0 0 82%;
+  min-width: 82%;
+}
+
+.carousel-item:first-child {
+  margin-left: 0;
+}
+
+.carousel-item:last-child {
+  margin-right: 20px;
 }
