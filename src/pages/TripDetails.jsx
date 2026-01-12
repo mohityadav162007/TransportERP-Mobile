@@ -169,9 +169,18 @@ const TripDetails = () => {
       </InfoSection>
 
       <InfoSection title="Vehicle & Owner" icon={Truck}>
-        <DetailRow label="Vehicle Number" value={trip.vehicle_number} />
-        <DetailRow label="Motor Owner" value={trip.motor_owner_name} />
-        <DetailRow label="Owner Number" value={trip.motor_owner_number} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <DetailRow label="Vehicle Number" value={trip.vehicle_number} />
+          {trip.is_own_vehicle && (
+            <span className="badge-own-vehicle">OWN VEHICLE</span>
+          )}
+        </div>
+        {!trip.is_own_vehicle && (
+          <>
+            <DetailRow label="Motor Owner" value={trip.motor_owner_name} />
+            <DetailRow label="Owner Number" value={trip.motor_owner_number} />
+          </>
+        )}
         <DetailRow label="Driver Number" value={trip.driver_number} />
       </InfoSection>
 
@@ -182,18 +191,20 @@ const TripDetails = () => {
 
       <InfoSection title="Financial Summary" icon={IndianRupee}>
         <div className="financial-grid">
-          <div className="financial-group owner">
-            <h4>Motor Owner Payout</h4>
-            <DetailRow label="Freight" value={trip.gaadi_freight} isCurrency />
-            <DetailRow label="Advance" value={trip.gaadi_advance} isCurrency />
-            <div className="total-row">
-              <label>Balance</label>
-              <div className="total-value">
-                <IndianRupee size={16} />
-                <span>{trip.gaadi_balance}</span>
+          {!trip.is_own_vehicle && (
+            <div className="financial-group owner">
+              <h4>Motor Owner Payout</h4>
+              <DetailRow label="Freight" value={trip.gaadi_freight} isCurrency />
+              <DetailRow label="Advance" value={trip.gaadi_advance} isCurrency />
+              <div className="total-row">
+                <label>Balance</label>
+                <div className="total-value">
+                  <IndianRupee size={16} />
+                  <span>{trip.gaadi_balance}</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
           <div className="financial-group party">
             <h4>Party Billing</h4>
             <DetailRow label="Freight" value={trip.party_freight} isCurrency />
@@ -310,6 +321,16 @@ const TripDetails = () => {
           font-size: 0.95rem;
           line-height: 1.5;
           color: var(--text-secondary);
+        }
+        .badge-own-vehicle {
+          background: rgba(63, 185, 80, 0.15);
+          color: #3fb950;
+          font-size: 0.7rem;
+          font-weight: 700;
+          padding: 4px 8px;
+          border-radius: 4px;
+          border: 1px solid rgba(63, 185, 80, 0.3);
+          letter-spacing: 0.05em;
         }
       `}</style>
     </div>

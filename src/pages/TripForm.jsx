@@ -50,7 +50,7 @@ const FormSection = ({ title, icon: Icon, children }) => (
     </div>
 );
 
-const InputField = ({ label, name, value, onChange, placeholder, type = "text", required = false }) => (
+const InputField = ({ label, name, value, onChange, placeholder, type = "text", required = false, readOnly = false }) => (
     <div className="input-group">
         <label>{label}</label>
         <input
@@ -60,6 +60,8 @@ const InputField = ({ label, name, value, onChange, placeholder, type = "text", 
             onChange={onChange}
             placeholder={placeholder}
             required={required}
+            readOnly={readOnly}
+            disabled={readOnly}
         />
         <style jsx>{`
       .input-group {
@@ -259,28 +261,39 @@ const TripForm = () => {
                 </FormSection>
 
                 <FormSection title="Vehicle & Owner" icon={Truck}>
-                    <InputField
-                        label="Vehicle Number"
-                        name="vehicle_number"
-                        value={formData.vehicle_number}
-                        onChange={handleInputChange}
-                        placeholder="Ex: HR 55 AB 1234"
-                        required
-                    />
-                    <InputField
-                        label="Motor Owner Name"
-                        name="motor_owner_name"
-                        value={formData.motor_owner_name}
-                        onChange={handleInputChange}
-                        placeholder="Owner Name"
-                    />
-                    <InputField
-                        label="Motor Owner Number"
-                        name="motor_owner_number"
-                        value={formData.motor_owner_number}
-                        onChange={handleInputChange}
-                        placeholder="Mobile Number"
-                    />
+                    <div className="input-with-badge">
+                        <InputField
+                            label="Vehicle Number"
+                            name="vehicle_number"
+                            value={formData.vehicle_number}
+                            onChange={handleInputChange}
+                            placeholder="Ex: HR 55 AB 1234"
+                            required
+                        />
+                        {formData.is_own_vehicle && (
+                            <span className="badge-own-vehicle">OWN VEHICLE</span>
+                        )}
+                    </div>
+
+                    {!formData.is_own_vehicle && (
+                        <>
+                            <InputField
+                                label="Motor Owner Name"
+                                name="motor_owner_name"
+                                value={formData.motor_owner_name}
+                                onChange={handleInputChange}
+                                placeholder="Owner Name"
+                            />
+                            <InputField
+                                label="Motor Owner Number"
+                                name="motor_owner_number"
+                                value={formData.motor_owner_number}
+                                onChange={handleInputChange}
+                                placeholder="Mobile Number"
+                            />
+                        </>
+                    )}
+
                     <InputField
                         label="Driver Number"
                         name="driver_number"
@@ -288,6 +301,23 @@ const TripForm = () => {
                         onChange={handleInputChange}
                         placeholder="Driver Contact"
                     />
+                    <style jsx>{`
+                        .input-with-badge {
+                            position: relative;
+                        }
+                        .badge-own-vehicle {
+                            position: absolute;
+                            top: 0;
+                            right: 0;
+                            background: rgba(63, 185, 80, 0.15);
+                            color: #3fb950;
+                            font-size: 0.65rem;
+                            font-weight: 700;
+                            padding: 2px 6px;
+                            border-radius: 4px;
+                            border: 1px solid rgba(63, 185, 80, 0.3);
+                        }
+                    `}</style>
                 </FormSection>
 
                 <FormSection title="Party Information" icon={User}>
@@ -308,29 +338,31 @@ const TripForm = () => {
                     />
                 </FormSection>
 
-                <FormSection title="Motor Owner Payout" icon={IndianRupee}>
-                    <InputField
-                        label="Agreed Freight"
-                        name="gaadi_freight"
-                        value={formData.gaadi_freight}
-                        onChange={handleInputChange}
-                        placeholder="Amount"
-                    />
-                    <InputField
-                        label="Advance Given"
-                        name="gaadi_advance"
-                        value={formData.gaadi_advance}
-                        onChange={handleInputChange}
-                        placeholder="Amount"
-                    />
-                    <InputField
-                        label="Balance Payable"
-                        name="gaadi_balance"
-                        value={formData.gaadi_balance}
-                        onChange={handleInputChange}
-                        placeholder="Remaining (Manual Input)"
-                    />
-                </FormSection>
+                {!formData.is_own_vehicle && (
+                    <FormSection title="Motor Owner Payout" icon={IndianRupee}>
+                        <InputField
+                            label="Agreed Freight"
+                            name="gaadi_freight"
+                            value={formData.gaadi_freight}
+                            onChange={handleInputChange}
+                            placeholder="Amount"
+                        />
+                        <InputField
+                            label="Advance Given"
+                            name="gaadi_advance"
+                            value={formData.gaadi_advance}
+                            onChange={handleInputChange}
+                            placeholder="Amount"
+                        />
+                        <InputField
+                            label="Balance Payable"
+                            name="gaadi_balance"
+                            value={formData.gaadi_balance}
+                            onChange={handleInputChange}
+                            placeholder="Remaining (Manual Input)"
+                        />
+                    </FormSection>
+                )}
 
                 <FormSection title="Party Billing" icon={IndianRupee}>
                     <InputField
@@ -362,11 +394,12 @@ const TripForm = () => {
 
                 <FormSection title="Financial Results" icon={IndianRupee}>
                     <InputField
-                        label="Calculated Profit"
+                        label={formData.is_own_vehicle ? "Calculated Profit (Auto)" : "Calculated Profit"}
                         name="profit"
                         value={formData.profit}
                         onChange={handleInputChange}
                         placeholder="Manual Input"
+                        readOnly={formData.is_own_vehicle}
                     />
                     <InputField
                         label="Remark"
