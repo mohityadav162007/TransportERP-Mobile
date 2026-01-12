@@ -132,6 +132,41 @@ const TripForm = () => {
         }
     };
 
+    // Auto-detect Own Vehicle
+    useEffect(() => {
+        const checkOwnVehicle = async () => {
+            if (!formData.vehicle_number || formData.vehicle_number.length < 3) return;
+
+            try {
+                // Check against own_vehicles table
+                const { data, error } = await supabase
+                    .from('own_vehicles')
+                    .select('id')
+                    .ilike('vehicle_number', formData.vehicle_number.trim())
+                    .maybeSingle();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error('Error checking own_vehicles:', error);
+                    return;
+                }
+
+                const isOwn = !!data;
+
+                // Only update if status implies a change to prevent infinite loops
+                setFormData(prev => {
+                    if (prev.is_own_vehicle === isOwn) return prev;
+                    return { ...prev, is_own_vehicle: isOwn };
+                });
+
+            } catch (err) {
+                console.error('Error in own vehicle check:', err);
+            }
+        };
+
+        const timer = setTimeout(checkOwnVehicle, 800);
+        return () => clearTimeout(timer);
+    }, [formData.vehicle_number]);
+
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
