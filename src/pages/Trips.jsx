@@ -166,7 +166,7 @@ const TripCard = ({ trip, onClick }) => (
   </div>
 );
 
-const Trips = () => {
+const Trips = ({ onlyOwnVehicles = false }) => {
   const navigate = useNavigate();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -181,11 +181,17 @@ const Trips = () => {
   const fetchTrips = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      let query = supabase
         .from('trips')
         .select('*')
         .eq('is_deleted', false)
         .order('created_at', { ascending: false });
+
+      if (onlyOwnVehicles) {
+        query = query.eq('is_own_vehicle', true);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setTrips(data || []);
@@ -198,7 +204,7 @@ const Trips = () => {
 
   useEffect(() => {
     fetchTrips();
-  }, []);
+  }, [onlyOwnVehicles]);
 
   const filteredTrips = useMemo(() => {
     return trips.filter(trip => {
@@ -221,7 +227,7 @@ const Trips = () => {
   return (
     <div className="trips-page">
       <div className="page-header">
-        <h2>Trips</h2>
+        <h2>{onlyOwnVehicles ? 'Own Vehicle Trips' : 'Trips'}</h2>
         <button className="btn btn-primary add-btn" onClick={() => navigate('/trips/add')}>
           <Plus size={20} />
           <span>Add</span>

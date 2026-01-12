@@ -28,6 +28,7 @@ function App() {
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="trips" element={<Trips />} />
+            <Route path="own-vehicles" element={<Trips onlyOwnVehicles={true} />} />
             <Route path="trips/:id" element={<TripDetails />} />
             <Route path="trips/:id/pod" element={<PODUpload />} />
             <Route path="trips/add" element={<TripForm />} />
