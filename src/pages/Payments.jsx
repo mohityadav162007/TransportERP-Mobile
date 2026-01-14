@@ -22,7 +22,7 @@ const PaymentCard = ({ payment }) => (
           <span className="transaction-label">{payment.transaction_type}</span>
         </div>
       </div>
-      <div className="payment-amount">
+      <div className={`payment-amount ${payment.transaction_type === 'Credit' ? 'credit-text' : 'debit-text'}`}>
         <IndianRupee size={20} />
         <span>{Number(payment.amount || 0).toLocaleString()}</span>
       </div>
@@ -69,6 +69,8 @@ const PaymentCard = ({ payment }) => (
       }
       .credit { background: rgba(63, 185, 80, 0.15); color: #3fb950; }
       .debit { background: rgba(248, 81, 73, 0.15); color: #f85149; }
+      .credit-text { color: #3fb950; }
+      .debit-text { color: #f85149; }
       
       .type-info {
         display: flex;
