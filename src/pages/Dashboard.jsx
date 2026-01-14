@@ -102,7 +102,7 @@ const Dashboard = () => {
   });
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = async () => {
+  const fetchStats = React.useCallback(async () => {
     try {
       setLoading(true);
       const { data: trips, error } = await supabase
@@ -162,7 +162,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchStats();
@@ -177,7 +177,7 @@ const Dashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [fetchStats]);
 
   const kpis = [
     { title: 'Total Trips', value: stats.totalTrips, icon: Truck, color: 'blue' },

@@ -2,7 +2,22 @@ import React from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
 import { LayoutDashboard, Truck, History, Wallet, Users, UserCircle } from 'lucide-react';
 
+import { useEffect } from 'react';
+import { requestForToken, onMessageListener } from '../lib/firebase';
+
 const Layout = () => {
+  useEffect(() => {
+    // Request FCM Token
+    requestForToken();
+
+    // Listen for foreground messages
+    onMessageListener().then((payload) => {
+      console.log('Foreground message received:', payload);
+      // Optional: Show a toast or alert
+      // alert(`${payload.notification.title}: ${payload.notification.body}`);
+    });
+  }, []);
+
   return (
     <div className="layout-container">
       {/* Header */}

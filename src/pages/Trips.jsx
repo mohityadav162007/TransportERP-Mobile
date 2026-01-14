@@ -178,7 +178,7 @@ const Trips = ({ onlyOwnVehicles = false }) => {
     podStatus: ''
   });
 
-  const fetchTrips = async () => {
+  const fetchTrips = React.useCallback(async () => {
     try {
       setLoading(true);
       let query = supabase
@@ -200,11 +200,11 @@ const Trips = ({ onlyOwnVehicles = false }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [onlyOwnVehicles]);
 
   useEffect(() => {
     fetchTrips();
-  }, [onlyOwnVehicles]);
+  }, [onlyOwnVehicles, fetchTrips]);
 
   const filteredTrips = useMemo(() => {
     return trips.filter(trip => {

@@ -13,6 +13,7 @@ export default defineConfig({
         name: 'Transport ERP Mobile',
         short_name: 'TransportERP',
         description: 'Mobile Transport ERP for logistics management',
+        gcm_sender_id: '103953800507',
         theme_color: '#0a0a0a',
         icons: [
           {

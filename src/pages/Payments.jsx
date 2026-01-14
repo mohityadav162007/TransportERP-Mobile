@@ -1,48 +1,50 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import {
-    IndianRupee,
-    Calendar,
-    Truck,
-    ArrowUpRight,
-    ArrowDownLeft,
-    Search
+  IndianRupee,
+  Truck,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Search,
+  MapPin
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 const PaymentCard = ({ payment }) => (
-    <div className="glass glass-card payment-card">
-        <div className="card-top">
-            <div className="payment-type">
-                <span className={`type-icon ${payment.transaction_type === 'Credit' ? 'credit' : 'debit'}`}>
-                    {payment.transaction_type === 'Credit' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
-                </span>
-                <div className="type-info">
-                    <span className="type-label">{payment.payment_type}</span>
-                    <span className="transaction-label">{payment.transaction_type}</span>
-                </div>
-            </div>
-            <div className="payment-amount">
-                <IndianRupee size={20} />
-                <span>{Number(payment.amount || 0).toLocaleString()}</span>
-            </div>
+  <div className="glass glass-card payment-card">
+    <div className="card-top">
+      <div className="payment-type">
+        <span className={`type-icon ${payment.transaction_type === 'Credit' ? 'credit' : 'debit'}`}>
+          {payment.transaction_type === 'Credit' ? <ArrowDownLeft size={16} /> : <ArrowUpRight size={16} />}
+        </span>
+        <div className="type-info">
+          <span className="type-label">{payment.payment_type}</span>
+          <span className="transaction-label">{payment.transaction_type}</span>
         </div>
+      </div>
+      <div className="payment-amount">
+        <IndianRupee size={20} />
+        <span>{Number(payment.amount || 0).toLocaleString()}</span>
+      </div>
+    </div>
 
-        <div className="payment-details">
-            <div className="p-detail">
-                <Truck size={14} className="text-secondary" />
-                <span>{payment.vehicle_number}</span>
-            </div>
-            <div className="p-detail">
-                <Calendar size={14} className="text-secondary" />
-                <span>Load: {payment.loading_date ? format(new Date(payment.loading_date), 'dd MMM yy') : '-'}</span>
-            </div>
-            <div className="p-detail date-main">
-                <span>Paid on: {payment.transaction_date ? format(new Date(payment.transaction_date), 'dd MMM yyyy') : '-'}</span>
-            </div>
+    <div className="payment-details">
+      <div className="p-detail">
+        <Truck size={14} className="text-secondary" />
+        <span>{payment.vehicle_number} {payment.trip?.trip_code && `(${payment.trip.trip_code})`}</span>
+      </div>
+      {payment.trip && (
+        <div className="p-detail">
+          <MapPin size={14} className="text-secondary" />
+          <span>{payment.trip.from_location} → {payment.trip.to_location}</span>
         </div>
+      )}
+      <div className="p-detail date-main">
+        <span>Paid on: {payment.transaction_date ? format(new Date(payment.transaction_date), 'dd MMM yyyy') : '-'}</span>
+      </div>
+    </div>
 
-        <style jsx>{`
+    <style jsx>{`
       .payment-card {
         padding: 1.25rem;
       }
@@ -109,74 +111,81 @@ const PaymentCard = ({ payment }) => (
         color: var(--text-primary);
       }
     `}</style>
-    </div>
+  </div>
 );
 
 const Payments = () => {
-    const [payments, setPayments] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [search, setSearch] = useState('');
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
-    const fetchPayments = async () => {
-        try {
-            setLoading(true);
-            const { data, error } = await supabase
-                .from('payment_history')
-                .select('*')
-                .eq('is_deleted', false)
-                .order('transaction_date', { ascending: false });
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('payment_history')
+        .select(`
+                    *,
+                    trip:trips (
+                        trip_code,
+                        from_location,
+                        to_location
+                    )
+                `)
+        .eq('is_deleted', false)
+        .order('transaction_date', { ascending: false });
 
-            if (error) throw error;
-            setPayments(data || []);
-        } catch (err) {
-            console.error('Error fetching payments:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+      if (error) throw error;
+      setPayments(data || []);
+    } catch (err) {
+      console.error('Error fetching payments:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    useEffect(() => {
-        fetchPayments();
-    }, []);
+  useEffect(() => {
+    fetchPayments();
+  }, []);
 
-    const filteredPayments = payments.filter(p =>
-        !search ||
-        p.vehicle_number?.toLowerCase().includes(search.toLowerCase()) ||
-        p.trip_code?.toLowerCase().includes(search.toLowerCase()) ||
-        p.payment_type?.toLowerCase().includes(search.toLowerCase())
-    );
+  const filteredPayments = payments.filter(p =>
+    !search ||
+    p.vehicle_number?.toLowerCase().includes(search.toLowerCase()) ||
+    p.trip_code?.toLowerCase().includes(search.toLowerCase()) ||
+    p.payment_type?.toLowerCase().includes(search.toLowerCase())
+  );
 
-    return (
-        <div className="payments-page">
-            <div className="page-header">
-                <h2>Payment History</h2>
-            </div>
+  return (
+    <div className="payments-page">
+      <div className="page-header">
+        <h2>Payment History</h2>
+      </div>
 
-            <div className="search-bar glass">
-                <Search size={18} className="text-secondary" />
-                <input
-                    type="text"
-                    placeholder="Search payments..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-            </div>
+      <div className="search-bar glass">
+        <Search size={18} className="text-secondary" />
+        <input
+          type="text"
+          placeholder="Search payments..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
 
-            <div className="payments-list">
-                {loading ? (
-                    <p className="text-center py-4">Loading history...</p>
-                ) : filteredPayments.length > 0 ? (
-                    filteredPayments.map(payment => (
-                        <PaymentCard key={payment.id} payment={payment} />
-                    ))
-                ) : (
-                    <div className="empty-state">
-                        <p>No payment records found</p>
-                    </div>
-                )}
-            </div>
+      <div className="payments-list">
+        {loading ? (
+          <p className="text-center py-4">Loading history...</p>
+        ) : filteredPayments.length > 0 ? (
+          filteredPayments.map(payment => (
+            <PaymentCard key={payment.id} payment={payment} />
+          ))
+        ) : (
+          <div className="empty-state">
+            <p>No payment records found</p>
+          </div>
+        )}
+      </div>
 
-            <style jsx>{`
+      <style jsx>{`
         .payments-page { padding-top: 0.5rem; }
         .page-header {
           margin-bottom: 1.5rem;
@@ -205,8 +214,8 @@ const Payments = () => {
           color: var(--text-secondary);
         }
       `}</style>
-        </div>
-    );
+    </div>
+  );
 };
 
 export default Payments;

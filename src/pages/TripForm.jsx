@@ -116,10 +116,11 @@ const TripForm = () => {
         if (isEdit) {
             fetchTrip();
         }
-    }, [id]);
+    }, [id, fetchTrip]);
 
-    const fetchTrip = async () => {
+    const fetchTrip = React.useCallback(async () => {
         try {
+            setLoading(true);
             const { data, error } = await supabase
                 .from('trips')
                 .select('*')
@@ -129,8 +130,10 @@ const TripForm = () => {
             setFormData(data);
         } catch (err) {
             console.error('Error fetching trip for edit:', err);
+        } finally {
+            setLoading(false);
         }
-    };
+    }, [id]);
 
     // Auto-detect Own Vehicle
     useEffect(() => {
@@ -226,9 +229,6 @@ const TripForm = () => {
 
 
             navigate('/trips');
-        } catch (err) {
-            console.error('Error saving trip:', err);
-            alert('Error saving trip. Please check console.');
         } finally {
             setLoading(false);
         }
@@ -449,11 +449,17 @@ const TripForm = () => {
                     <div className="status-grid">
                         <div className="status-item">
                             <label>Payment Status</label>
-                            <input name="payment_status" value={formData.payment_status} onChange={handleInputChange} placeholder="Pending/Paid" />
+                            <select name="payment_status" value={formData.payment_status} onChange={handleInputChange}>
+                                <option value="Pending">Pending</option>
+                                <option value="Paid">Paid</option>
+                            </select>
                         </div>
                         <div className="status-item">
                             <label>POD Status</label>
-                            <input name="pod_status" value={formData.pod_status} onChange={handleInputChange} placeholder="Pending/Received" />
+                            <select name="pod_status" value={formData.pod_status} onChange={handleInputChange}>
+                                <option value="Pending">Pending</option>
+                                <option value="Received">Received</option>
+                            </select>
                         </div>
                     </div>
                 </FormSection>
@@ -504,6 +510,18 @@ const TripForm = () => {
         .status-item label {
           font-size: 0.8rem;
           color: var(--text-secondary);
+        }
+        .status-item select {
+          padding: 12px;
+          background: var(--glass-bg);
+          border: 1px solid var(--glass-border);
+          border-radius: 8px;
+          color: white;
+          font-size: 0.95rem;
+          outline: none;
+        }
+        .status-item select:focus {
+          border-color: var(--accent-color);
         }
         .submit-btn {
           position: sticky;
