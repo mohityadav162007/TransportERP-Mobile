@@ -1,0 +1,6 @@
+# Revert Commit
+
+This commit reverts commit <original_commit_sha>.
+
+## Changes
+This revert undoes the changes made in the latest commit.
